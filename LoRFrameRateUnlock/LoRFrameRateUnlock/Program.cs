@@ -51,20 +51,29 @@ namespace LoRFrameRateUnlock
             DoLog($"UnityPlayer.dll 0x{unityPlayer.ToInt64():x}", ConsoleColor.Green);
 
             // our GraphicsManager pointer chain
-            var offsetChain = new[] {0x48, 0x158, 0x930};
-            var offset0 = 0x014B0A60;
-
-            var address = unityPlayer + offset0;
-
-            foreach (var offset in offsetChain)
+            var offsetChains = new[]
             {
-                address = Read(handle, address);
+                new[] { 0x48, 0x158, 0x930 },
+                new[] { 0x48, 0x120, 0x60, 0x930 },
+                new[] { 0x50, 0x108, 0x10, 0x60, 0xAF0 },
+                new[] { 0x48, 0x30, 0x130, 0x38, 0x28, 0x850 },
+            };
 
-                if (address == IntPtr.Zero)
-                    throw new Exception("Failed to read pointer chain, make sure your offsets are up to date");
+            var address = IntPtr.Zero;
 
-                address += offset;
+            foreach (var offsetChain in offsetChains)
+            {
+                var result = ReadChain(handle, unityPlayer + 0x014B0A60, offsetChain);
+
+                if (result != IntPtr.Zero)
+                {
+                    address = result;
+                    break;
+                }
             }
+
+            if(address == IntPtr.Zero)
+                throw new Exception("Failed to read pointer chain, make sure your offsets are up to date");
 
             // override the default value
             if (!Write(handle, address + 0x3c, 999))
@@ -91,6 +100,21 @@ namespace LoRFrameRateUnlock
         {
             Console.ForegroundColor = color ?? ConsoleColor.White;
             Console.WriteLine(log);
+        }
+
+        private static IntPtr ReadChain(IntPtr handle, IntPtr address, int[] offsets)
+        {
+            foreach (var offset in offsets)
+            {
+                address = Read(handle, address);
+
+                if (address == IntPtr.Zero)
+                    return IntPtr.Zero;
+
+                address += offset;
+            }
+
+            return address;
         }
 
         private static IntPtr Read(IntPtr handle, IntPtr address)

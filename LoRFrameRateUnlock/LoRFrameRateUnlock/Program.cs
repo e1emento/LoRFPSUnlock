@@ -76,7 +76,7 @@ namespace LoRFrameRateUnlock
                 throw new Exception("Failed to read pointer chain, make sure your offsets are up to date");
 
             // override the default value
-            if (!Write(handle, address + 0x3c, 999))
+            if (!Write(handle, address + 0x3c, 75))
                 throw new Exception("Could not override memory value");
 
             // we are done
